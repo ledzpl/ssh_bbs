@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -23,6 +24,8 @@ func (m Model) View() string {
 		s = m.viewPosts()
 	case viewCompose:
 		s = m.viewCompose()
+	case viewComments:
+		s = m.viewComments()
 	}
 
 	if m.err != nil {
@@ -34,44 +37,60 @@ func (m Model) View() string {
 
 func (m Model) viewBoards() string {
 	// ASCII Art Banner
-	banner := `
- ███████╗███████╗██╗  ██╗    ██████╗ ██████╗ ███████╗
- ██╔════╝██╔════╝██║  ██║    ██╔══██╗██╔══██╗██╔════╝
- ███████╗███████╗███████║    ██████╔╝██████╔╝███████╗
- ╚════██║╚════██║██╔══██║    ██╔══██╗██╔══██╗╚════██║
- ███████║███████║██║  ██║    ██████╔╝██████╔╝███████║
- ╚══════╝╚══════╝╚═╝  ╚═╝    ╚═════╝ ╚═════╝ ╚══════╝`
-
-	s := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("86")).
+	banner := lipgloss.NewStyle().
+		Foreground(colCyan).
 		Bold(true).
-		Render(banner) + "\n"
+		Render(`
+   _____ _____ _    _   ____  ____   _____ 
+  / ____/ ____| |  | | |  _ \|  _ \ / ____|
+ | (___| (___ | |__| | | |_) | |_) | (___  
+  \___ \\___ \|  __  | |  _ <|  _ < \___ \ 
+  ____) |___) | |  | | | |_) | |_) |____) |
+ |_____/_____/|_|  |_| |____/|____/|_____/ 
+`)
 
-	s += styleDim.Render(fmt.Sprintf("Welcome, %s!", m.username)) + "\n\n"
+	s := banner + "\n\n"
+	s += styleHeader.Render("Select a Board") + "\n\n"
 
-	// Header
-	s += fmt.Sprintf("%s %s\n",
-		styleTableHead.Width(30).Render("Name"),
-		styleTableHead.Width(10).Render("Posts"),
+	if len(m.boards) == 0 {
+		s += styleDim.Render("No boards available.") + "\n"
+		return s
+	}
+
+	// Enhanced table header
+	s += fmt.Sprintf("%s  %s\n",
+		styleTableHead.Width(30).Render("Board Name"),
+		styleTableHead.Width(15).Render("Posts"),
 	)
+	s += styleDim.Render(strings.Repeat("-", 47)) + "\n"
 
-	// Rows
 	for i, b := range m.boards {
 		style := styleTableRow
 		if i == m.boardIdx {
 			style = styleTableSelected
 		}
-		s += fmt.Sprintf("%s %s\n",
+
+		s += fmt.Sprintf("%s  %s\n",
 			style.Width(30).Render(b.Name),
-			style.Width(10).Render(fmt.Sprintf("%d", b.PostCount)),
+			style.Width(15).Render(fmt.Sprintf("%d posts", b.PostCount)),
 		)
 	}
-	s += "\n" + styleDim.Render("j/k: move • enter: select • w: write • q: quit")
+
+	s += "\n" + styleDim.Render("j/k: navigate • enter: select • q: quit")
 	return s
 }
 
 func (m Model) viewPosts() string {
-	s := styleTitle.Render("Board: "+m.activeBoard) + "\n\n"
+	// Board header with style
+	boardHeader := lipgloss.NewStyle().
+		Foreground(colPurple).
+		Bold(true).
+		Padding(0, 1).
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(colPurple).
+		Render("Board: " + m.activeBoard)
+
+	s := boardHeader + "\n\n"
 
 	// Show search input if in search mode
 	if m.searchMode {
@@ -91,7 +110,7 @@ func (m Model) viewPosts() string {
 		}
 		displayPosts = filtered
 		if !m.searchMode {
-			s += styleDim.Render(fmt.Sprintf("Filtered: %d results for \"%s\"", len(filtered), m.searchQuery)) + "\n\n"
+			s += styleCommentMeta.Render(fmt.Sprintf("Found %d result(s) for \"%s\"", len(filtered), m.searchQuery)) + "\n\n"
 		}
 	}
 
@@ -109,103 +128,95 @@ func (m Model) viewPosts() string {
 	pagePosts := displayPosts[start:end]
 	totalPages := (len(displayPosts) + m.postsPerPage - 1) / m.postsPerPage
 
-	// Build post list
-	var postList string
-	postList += fmt.Sprintf("%s %s\n",
-		styleTableHead.Width(6).Render("ID"),
-		styleTableHead.Width(22).Render("Title"),
-	)
-
-	for i, p := range pagePosts {
-		style := styleTableRow
-		currentIdx := start + i
-		if currentIdx == m.postIdx {
-			style = styleTableSelected
-		}
-
-		title := p.Title
-		if len(title) > 20 {
-			title = title[:17] + "..."
-		}
-
-		postList += fmt.Sprintf("%s %s\n",
-			style.Width(6).Render(fmt.Sprintf("%d", p.ID)),
-			style.Width(22).Render(title),
-		)
-	}
-
-	postList += "\n" + styleDim.Render(fmt.Sprintf("Page %d/%d", m.page+1, totalPages))
-
-	// If in viewPost state, show split pane
+	// If in viewPost state, show full screen detail
 	if m.state == viewPost {
-		// Adjust viewport for split pane
-		// Account for: title (2 lines) + search (if active, 2 lines) + table header (1 line) + footer (2 lines) + padding
-		headerLines := 5
-		if m.searchMode || m.searchQuery != "" {
-			headerLines += 2
-		}
-
-		maxContentHeight := m.height - headerLines - 10 // Extra padding for post title and meta
-		if maxContentHeight < 5 {
-			maxContentHeight = 5
-		}
-		m.viewport.Height = maxContentHeight
-		m.viewport.Width = m.width - 35 // Reserve space for post list
-
 		p := m.activePost
 
-		// Post detail
-		meta := fmt.Sprintf("%s %s\n%s %s",
+		// Fixed box height - use most of the screen
+		boxHeight := m.height - 6 // Leave room for header and help text
+		if boxHeight < 10 {
+			boxHeight = 10
+		}
+
+		// Set viewport to fill the box
+		m.viewport.Height = boxHeight - 6 // Account for title, meta, borders
+		m.viewport.Width = m.width - 10
+
+		// Build ALL content (post + comments) for viewport
+		var viewportContent strings.Builder
+
+		// Post content
+		viewportContent.WriteString(m.renderPostContent())
+
+		// Add comments section
+		if len(p.Comments) > 0 {
+			viewportContent.WriteString("\n\n")
+			viewportContent.WriteString(styleCommentSeparator.Render("--- Comments ---"))
+			viewportContent.WriteString("\n\n")
+
+			for i, c := range p.Comments {
+				indent := ""
+				prefix := "*"
+				if c.ParentID > 0 {
+					indent = "  "
+					prefix = ">"
+				}
+
+				// Comment header
+				commentHeader := fmt.Sprintf("%s%s %s",
+					indent,
+					prefix,
+					styleCommentAuthor.Render(c.Author),
+				)
+
+				// Comment content
+				commentBody := indent + "  " + styleCommentContent.Render(c.Content)
+
+				viewportContent.WriteString(commentHeader + "\n")
+				viewportContent.WriteString(commentBody + "\n")
+
+				// Add spacing between comments
+				if i < len(p.Comments)-1 {
+					viewportContent.WriteString(styleDim.Render(indent+"  -----") + "\n")
+				}
+			}
+		}
+
+		// Set viewport content
+		m.viewport.SetContent(viewportContent.String())
+
+		// Post metadata
+		commentCount := len(p.Comments)
+		meta := fmt.Sprintf("%s %s | %s %s | %s %d",
 			styleMetaLabel.Render("Author:"),
 			styleMetaValue.Render(p.Author),
 			styleMetaLabel.Render("Date:"),
-			styleMetaValue.Render(p.CreatedAt.Format(time.RFC822)),
+			styleMetaValue.Render(p.CreatedAt.Format("2006-01-02 15:04")),
+			styleMetaLabel.Render("Comments:"),
+			commentCount,
 		)
 
+		// Build detail view
 		detail := fmt.Sprintf("%s\n\n%s\n\n%s",
 			styleTitle.Render(p.Title),
 			meta,
 			m.viewport.View(),
 		)
 
-		detailBox := styleDetailBox.Render(detail)
-
-		// Combine list and detail side by side
-		listLines := strings.Split(postList, "\n")
-		detailLines := strings.Split(detailBox, "\n")
-
-		maxLines := len(listLines)
-		if len(detailLines) > maxLines {
-			maxLines = len(detailLines)
-		}
-
-		var combined string
-		for i := 0; i < maxLines; i++ {
-			var listLine, detailLine string
-			if i < len(listLines) {
-				listLine = listLines[i]
-			}
-			if i < len(detailLines) {
-				detailLine = detailLines[i]
-			}
-
-			// Pad list to 30 chars
-			listLine = lipgloss.NewStyle().Width(30).Render(listLine)
-			combined += listLine + " " + detailLine + "\n"
-		}
-
-		s += combined
-		s += styleDim.Render("j/k: move • Esc/b: close detail • q: quit")
+		// Render with fixed height
+		s += styleDetailBox.Render(detail)
+		s += "\n" + styleDim.Render("j/k: scroll • c: comment list • r: reply • b: back • q: quit")
 		return s
 	}
 
-	// Normal view (no detail)
-	s += fmt.Sprintf("%s %s %s %s\n",
+	// Normal view
+	s += fmt.Sprintf("%s  %s  %s  %s\n",
 		styleTableHead.Width(6).Render("ID"),
-		styleTableHead.Width(40).Render("Title"),
+		styleTableHead.Width(35).Render("Title"),
 		styleTableHead.Width(15).Render("Author"),
-		styleTableHead.Width(20).Render("Date"),
+		styleTableHead.Width(18).Render("Date"),
 	)
+	s += styleDim.Render(strings.Repeat("-", 78)) + "\n"
 
 	for i, p := range pagePosts {
 		style := styleTableRow
@@ -279,17 +290,24 @@ func (m Model) viewPost() string {
 }
 
 func (m Model) viewCompose() string {
-	header := styleTitle.Render("Compose Post")
+	header := lipgloss.NewStyle().
+		Foreground(colYellow).
+		Bold(true).
+		Padding(0, 1).
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(colYellow).
+		Render("Compose New Post")
 
-	form := fmt.Sprintf("%s\n\n%s\n%s",
+	form := fmt.Sprintf("%s\n%s\n\n%s\n%s",
+		styleMetaLabel.Render("Title:"),
 		m.textInput.View(),
-		styleMetaLabel.Render("Content:"),
+		styleMetaLabel.Render("Content (Markdown supported):"),
 		m.textarea.View(),
 	)
 
-	help := styleHelp.Render("Tab: switch fields • Ctrl+S: submit • Esc: cancel")
+	help := styleDim.Render("Tab: switch fields • Ctrl+S: submit • Esc: cancel")
 
-	return fmt.Sprintf("%s\n%s\n%s",
+	return fmt.Sprintf("%s\n\n%s\n\n%s",
 		header,
 		styleComposeBox.Render(form),
 		help,
@@ -297,5 +315,100 @@ func (m Model) viewCompose() string {
 }
 
 func (m Model) renderPostContent() string {
-	return m.activePost.Content
+	content := m.activePost.Content
+
+	// Try to render as Markdown
+	renderer, err := glamour.NewTermRenderer(
+		glamour.WithAutoStyle(),
+		glamour.WithWordWrap(m.viewport.Width-4),
+	)
+
+	if err == nil {
+		rendered, err := renderer.Render(content)
+		if err == nil {
+			return rendered
+		}
+	}
+
+	// Fallback to plain text if Markdown rendering fails
+	return content
+}
+
+func (m Model) viewComments() string {
+	// Header with style
+	commentHeader := lipgloss.NewStyle().
+		Foreground(colBlue).
+		Bold(true).
+		Padding(0, 1).
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(colBlue).
+		Render(fmt.Sprintf("Comments: %s", m.activePost.Title))
+
+	var s string
+
+	if len(m.comments) == 0 {
+		s = commentHeader + "\n\n"
+		s += styleDim.Render("No comments yet. Press 'r' to add one.") + "\n"
+		s += "\n" + styleDim.Render("j/k: navigate • r: reply • b: back • q: quit")
+		return s
+	} else {
+		// Build comment lines into a string
+		var commentLines strings.Builder
+		commentLines.WriteString(styleDim.Render(fmt.Sprintf("Total: %d comment(s)", len(m.comments))) + "\n\n")
+
+		// Table header
+		commentLines.WriteString(fmt.Sprintf("%s  %s  %s\n",
+			styleTableHead.Width(5).Render("#"),
+			styleTableHead.Width(15).Render("Author"),
+			styleTableHead.Width(53).Render("Content"),
+		))
+		commentLines.WriteString(styleDim.Render(strings.Repeat("-", 75)) + "\n")
+
+		for i, c := range m.comments {
+			style := styleTableRow
+			if i == m.commentIdx {
+				style = styleTableSelected
+			}
+
+			// Determine prefix based on parent
+			prefix := "*"
+			indent := ""
+			if c.ParentID > 0 {
+				prefix = ">"
+				indent = "  "
+			}
+
+			lines := strings.Split(c.Content, "\n")
+			for li, line := range lines {
+				line = strings.TrimRight(line, "\r")
+				rendered := style.Width(50 - len(indent) - 2).Render(line)
+				if len(rendered) > 50 {
+					rendered = rendered[:47] + "..."
+				}
+				num := ""
+				author := ""
+				if li == 0 {
+					num = fmt.Sprintf("%d", i+1)
+					author = c.Author
+				}
+				commentLines.WriteString(fmt.Sprintf("%s  %s  %s%s %s\n",
+					style.Width(5).Render(num),
+					style.Width(15).Render(author),
+					indent,
+					prefix,
+					rendered,
+				))
+			}
+		}
+
+		// Set viewport for comments
+		m.viewport.Height = m.height - 6 // reserve header and help lines
+		m.viewport.Width = m.width - 10
+		m.viewport.SetContent(commentLines.String())
+
+		// Build final view
+		s = commentHeader + "\n\n" + m.viewport.View()
+		s += "\n" + styleDim.Render("j/k: navigate • r: reply • b: back • q: quit")
+		return s
+	}
 }

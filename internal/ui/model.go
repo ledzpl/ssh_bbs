@@ -16,6 +16,7 @@ const (
 	viewPosts
 	viewPost
 	viewCompose
+	viewComments
 )
 
 type Model struct {
@@ -48,6 +49,11 @@ type Model struct {
 	searchMode  bool
 	searchInput textinput.Model
 	searchQuery string
+
+	// Comments
+	comments    []bbs.Comment
+	commentIdx  int
+	commentMode bool // true when composing a comment, false for post
 
 	err error
 }
@@ -113,12 +119,15 @@ func (m *Model) goBack() {
 	case viewCompose:
 		m.state = viewPosts
 		m.composing = false
+	case viewComments:
+		m.state = viewPost
 	}
 }
 
 func (m *Model) startCompose() {
 	m.state = viewCompose
 	m.composing = true
+	m.commentMode = false
 	m.textInput.Reset()
 	m.textInput.Focus()
 	m.textarea.Reset()

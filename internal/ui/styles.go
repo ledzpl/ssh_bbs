@@ -3,19 +3,23 @@ package ui
 import "github.com/charmbracelet/lipgloss"
 
 var (
-	// Colors
-	colCyan   = lipgloss.Color("86")
-	colYellow = lipgloss.Color("220")
-	colGreen  = lipgloss.Color("76")
-	colDim    = lipgloss.Color("240")
-	colErr    = lipgloss.Color("196")
+	// Enhanced Colors
+	colCyan      = lipgloss.Color("86")
+	colYellow    = lipgloss.Color("220")
+	colGreen     = lipgloss.Color("76")
+	colDim       = lipgloss.Color("240")
+	colErr       = lipgloss.Color("196")
+	colPurple    = lipgloss.Color("141")
+	colOrange    = lipgloss.Color("208")
+	colBlue      = lipgloss.Color("39")
+	colLightGray = lipgloss.Color("250")
 
 	// Styles
 	styleTitle = lipgloss.NewStyle().
 			Foreground(colCyan).
 			Bold(true).
 			Padding(0, 1).
-			BorderStyle(lipgloss.RoundedBorder()).
+			BorderStyle(lipgloss.DoubleBorder()).
 			BorderForeground(colCyan)
 
 	styleSelected = lipgloss.NewStyle().
@@ -45,20 +49,38 @@ var (
 	styleTableSelected = lipgloss.NewStyle().
 				Foreground(colGreen).
 				Bold(true).
+				Background(lipgloss.Color("235")).
 				Padding(0, 1)
 
-	// Post Detail Styles
+	// Post Detail Styles - Enhanced
 	styleDetailBox = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(colCyan).
-			Padding(0, 1).
+			Border(lipgloss.DoubleBorder()).
+			BorderForeground(colPurple).
+			Padding(1, 2).
 			MarginTop(1)
 
 	styleMetaLabel = lipgloss.NewStyle().
-			Foreground(colDim)
+			Foreground(colOrange).
+			Bold(true)
 
 	styleMetaValue = lipgloss.NewStyle().
-			Foreground(colYellow)
+			Foreground(colLightGray)
+
+	// Comment Styles - New
+	styleCommentSeparator = lipgloss.NewStyle().
+				Foreground(colDim).
+				Bold(true)
+
+	styleCommentAuthor = lipgloss.NewStyle().
+				Foreground(colBlue).
+				Bold(true)
+
+	styleCommentContent = lipgloss.NewStyle().
+				Foreground(colLightGray)
+
+	styleCommentMeta = lipgloss.NewStyle().
+				Foreground(colDim).
+				Italic(true)
 
 	// Compose Styles
 	styleComposeBox = lipgloss.NewStyle().

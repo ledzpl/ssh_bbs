@@ -15,6 +15,17 @@ type Post struct {
 	Content   string
 	Author    string
 	CreatedAt time.Time
+	Comments  []Comment `json:"comments,omitempty"`
+}
+
+// Comment represents a comment on a post.
+type Comment struct {
+	ID        int       `json:"id"`
+	PostID    int       `json:"post_id"`
+	ParentID  int       `json:"parent_id,omitempty"` // 0 for top-level comments
+	Author    string    `json:"author"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // Board keeps ordered posts.

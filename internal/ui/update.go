@@ -57,6 +57,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case viewCompose:
 		m, cmd = m.updateCompose(msg)
 		cmds = append(cmds, cmd)
+	case viewComments:
+		m, cmd = m.updateComments(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -161,6 +164,26 @@ func (m Model) updatePostView(msg tea.Msg) (Model, tea.Cmd) {
 		case "esc", "b", "left":
 			m.state = viewPosts
 			return m, nil
+		case "c":
+			// View comments (legacy - now shown inline)
+			comments, err := m.board.ListComments(m.activeBoard, m.activePost.ID)
+			if err == nil {
+				m.comments = comments
+				m.commentIdx = 0
+				m.state = viewComments
+			}
+			return m, nil
+		case "r":
+			// Reply directly
+			m.commentMode = true
+			m.state = viewCompose
+			m.composing = true
+			m.textInput.Reset()
+			m.textInput.SetValue("Comment")
+			m.textInput.Blur()
+			m.textarea.Reset()
+			m.textarea.Focus()
+			return m, nil
 		}
 	}
 
@@ -188,23 +211,56 @@ func (m Model) updateCompose(msg tea.Msg) (Model, tea.Cmd) {
 			// Submit with Ctrl+S
 			title := m.textInput.Value()
 			content := m.textarea.Value()
-			if title == "" || content == "" {
-				m.err = fmt.Errorf("title and content cannot be empty")
+			if content == "" {
+				m.err = fmt.Errorf("content cannot be empty")
 				return m, nil
 			}
-			_, err := m.board.AddPost(m.activeBoard, m.username, title, content)
-			if err != nil {
-				m.err = err
+
+			if m.commentMode {
+				// Add comment
+				_, err := m.board.AddComment(m.activeBoard, m.activePost.ID, m.username, content, 0)
+				if err != nil {
+					m.err = err
+				} else {
+					// Refresh post to show new comment
+					m.refreshPosts()
+					// Find and update activePost
+					for _, p := range m.posts {
+						if p.ID == m.activePost.ID {
+							m.activePost = p
+							break
+						}
+					}
+					m.state = viewPost
+					m.composing = false
+					m.commentMode = false
+				}
 			} else {
-				m.refreshPosts()
-				m.refreshBoards()
-				m.state = viewPosts
-				m.composing = false
+				// Add post
+				if title == "" {
+					m.err = fmt.Errorf("title cannot be empty")
+					return m, nil
+				}
+				_, err := m.board.AddPost(m.activeBoard, m.username, title, content)
+				if err != nil {
+					m.err = err
+				} else {
+					m.refreshPosts()
+					m.refreshBoards()
+					m.state = viewPosts
+					m.composing = false
+				}
 			}
 			return m, nil
 		case "esc":
 			m.composing = false
-			m.state = viewPosts
+			// Return to appropriate view
+			if m.commentMode {
+				m.commentMode = false
+				m.state = viewPost
+			} else {
+				m.state = viewPosts
+			}
 			return m, nil
 		}
 	}

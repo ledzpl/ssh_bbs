@@ -232,3 +232,33 @@ func boardNames(m map[string]*Board, order []string) []string {
 	}
 	return names
 }
+
+// DeletePost removes a post if the author matches.
+func (b *BBS) DeletePost(boardName string, postID int, author string) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	board, ok := b.boards[boardName]
+	if !ok {
+		return ErrBoardNotFound
+	}
+
+	return board.deletePost(postID, author)
+}
+
+func (b *Board) deletePost(postID int, author string) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	for i, p := range b.posts {
+		if p.ID == postID {
+			if p.Author != author {
+				return errors.New("unauthorized: only the author can delete this post")
+			}
+			// Remove post
+			b.posts = append(b.posts[:i], b.posts[i+1:]...)
+			return nil
+		}
+	}
+	return ErrPostNotFound
+}

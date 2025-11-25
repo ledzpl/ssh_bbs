@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"ag/internal/bbs"
 	"fmt"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -116,6 +118,27 @@ func (m Model) updatePosts(msg tea.Msg) (Model, tea.Cmd) {
 		return m, cmd
 	}
 
+	// Calculate display posts for navigation bounds
+	displayPosts := m.posts
+	if m.searchQuery != "" {
+		filtered := []bbs.Post{}
+		query := strings.ToLower(m.searchQuery)
+		for _, p := range m.posts {
+			if strings.Contains(strings.ToLower(p.Title), query) ||
+				strings.Contains(strings.ToLower(p.Content), query) {
+				filtered = append(filtered, p)
+			}
+		}
+		displayPosts = filtered
+	}
+
+	// Pagination bounds
+	start := m.page * m.postsPerPage
+	end := start + m.postsPerPage
+	if end > len(displayPosts) {
+		end = len(displayPosts)
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -124,15 +147,15 @@ func (m Model) updatePosts(msg tea.Msg) (Model, tea.Cmd) {
 			m.searchInput.Focus()
 			return m, nil
 		case "up", "k":
-			if len(m.posts) > 0 {
-				m.postIdx = (m.postIdx - 1 + len(m.posts)) % len(m.posts)
+			if m.postIdx > start {
+				m.postIdx--
 			}
 		case "down", "j":
-			if len(m.posts) > 0 {
-				m.postIdx = (m.postIdx + 1) % len(m.posts)
+			if m.postIdx < end-1 {
+				m.postIdx++
 			}
 		case "n":
-			totalPages := (len(m.posts) + m.postsPerPage - 1) / m.postsPerPage
+			totalPages := (len(displayPosts) + m.postsPerPage - 1) / m.postsPerPage
 			if m.page < totalPages-1 {
 				m.page++
 				m.postIdx = m.page * m.postsPerPage
@@ -143,15 +166,26 @@ func (m Model) updatePosts(msg tea.Msg) (Model, tea.Cmd) {
 				m.postIdx = m.page * m.postsPerPage
 			}
 		case "enter", "right", "l":
-			if len(m.posts) > 0 {
-				m.activePost = m.posts[m.postIdx]
+			if len(displayPosts) > 0 && m.postIdx < len(displayPosts) {
+				m.activePost = displayPosts[m.postIdx]
 				m.state = viewPost
 				m.viewport.SetContent(m.renderPostContent())
 				m.viewport.GotoTop()
 			}
+		case "w":
+			m.state = viewCompose
+			m.composing = true
+			m.textInput.Focus()
+			m.textInput.SetValue("")
+			m.textarea.SetValue("")
+		case "esc", "left", "h", "b":
+			m.state = viewBoards
+		case "q":
+			return m, tea.Quit
 		}
 	}
-	return m, nil
+
+	return m, cmd
 }
 
 func (m Model) updatePostView(msg tea.Msg) (Model, tea.Cmd) {
@@ -164,25 +198,27 @@ func (m Model) updatePostView(msg tea.Msg) (Model, tea.Cmd) {
 		case "esc", "b", "left":
 			m.state = viewPosts
 			return m, nil
-		case "c":
-			// View comments (legacy - now shown inline)
-			comments, err := m.board.ListComments(m.activeBoard, m.activePost.ID)
-			if err == nil {
-				m.comments = comments
-				m.commentIdx = 0
-				m.state = viewComments
-			}
-			return m, nil
 		case "r":
-			// Reply directly
-			m.commentMode = true
 			m.state = viewCompose
 			m.composing = true
-			m.textInput.Reset()
-			m.textInput.SetValue("Comment")
-			m.textInput.Blur()
-			m.textarea.Reset()
+			m.commentMode = true
+			m.textInput.SetValue("") // Not used for comments but good to clear
+			m.textarea.SetValue("")
 			m.textarea.Focus()
+			return m, nil
+		case "c":
+			m.state = viewComments
+			m.viewport.GotoTop()
+			return m, nil
+		case "d":
+			// Delete post
+			err := m.board.DeletePost(m.activeBoard, m.activePost.ID, m.username)
+			if err != nil {
+				m.err = err
+			} else {
+				m.refreshPosts()
+				m.state = viewPosts
+			}
 			return m, nil
 		}
 	}

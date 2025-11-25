@@ -205,7 +205,7 @@ func (m Model) viewPosts() string {
 
 		// Render with fixed height
 		s += styleDetailBox.Render(detail)
-		s += "\n" + styleDim.Render("j/k: scroll • c: comment list • r: reply • b: back • q: quit")
+		s += "\n" + styleDim.Render("j/k: navigate • r: reply • c: comments • d: delete • b: back • q: quit")
 		return s
 	}
 

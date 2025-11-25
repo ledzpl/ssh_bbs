@@ -19,10 +19,8 @@ func (m Model) View() string {
 	switch m.state {
 	case viewBoards:
 		s = m.viewBoards()
-	case viewPosts:
+	case viewPosts, viewPost:
 		s = m.viewPosts()
-	case viewPost:
-		s = m.viewPost()
 	case viewCompose:
 		s = m.viewCompose()
 	}
@@ -111,7 +109,97 @@ func (m Model) viewPosts() string {
 	pagePosts := displayPosts[start:end]
 	totalPages := (len(displayPosts) + m.postsPerPage - 1) / m.postsPerPage
 
-	// Header
+	// Build post list
+	var postList string
+	postList += fmt.Sprintf("%s %s\n",
+		styleTableHead.Width(6).Render("ID"),
+		styleTableHead.Width(22).Render("Title"),
+	)
+
+	for i, p := range pagePosts {
+		style := styleTableRow
+		currentIdx := start + i
+		if currentIdx == m.postIdx {
+			style = styleTableSelected
+		}
+
+		title := p.Title
+		if len(title) > 20 {
+			title = title[:17] + "..."
+		}
+
+		postList += fmt.Sprintf("%s %s\n",
+			style.Width(6).Render(fmt.Sprintf("%d", p.ID)),
+			style.Width(22).Render(title),
+		)
+	}
+
+	postList += "\n" + styleDim.Render(fmt.Sprintf("Page %d/%d", m.page+1, totalPages))
+
+	// If in viewPost state, show split pane
+	if m.state == viewPost {
+		// Adjust viewport for split pane
+		// Account for: title (2 lines) + search (if active, 2 lines) + table header (1 line) + footer (2 lines) + padding
+		headerLines := 5
+		if m.searchMode || m.searchQuery != "" {
+			headerLines += 2
+		}
+
+		maxContentHeight := m.height - headerLines - 10 // Extra padding for post title and meta
+		if maxContentHeight < 5 {
+			maxContentHeight = 5
+		}
+		m.viewport.Height = maxContentHeight
+		m.viewport.Width = m.width - 35 // Reserve space for post list
+
+		p := m.activePost
+
+		// Post detail
+		meta := fmt.Sprintf("%s %s\n%s %s",
+			styleMetaLabel.Render("Author:"),
+			styleMetaValue.Render(p.Author),
+			styleMetaLabel.Render("Date:"),
+			styleMetaValue.Render(p.CreatedAt.Format(time.RFC822)),
+		)
+
+		detail := fmt.Sprintf("%s\n\n%s\n\n%s",
+			styleTitle.Render(p.Title),
+			meta,
+			m.viewport.View(),
+		)
+
+		detailBox := styleDetailBox.Render(detail)
+
+		// Combine list and detail side by side
+		listLines := strings.Split(postList, "\n")
+		detailLines := strings.Split(detailBox, "\n")
+
+		maxLines := len(listLines)
+		if len(detailLines) > maxLines {
+			maxLines = len(detailLines)
+		}
+
+		var combined string
+		for i := 0; i < maxLines; i++ {
+			var listLine, detailLine string
+			if i < len(listLines) {
+				listLine = listLines[i]
+			}
+			if i < len(detailLines) {
+				detailLine = detailLines[i]
+			}
+
+			// Pad list to 30 chars
+			listLine = lipgloss.NewStyle().Width(30).Render(listLine)
+			combined += listLine + " " + detailLine + "\n"
+		}
+
+		s += combined
+		s += styleDim.Render("j/k: move • Esc/b: close detail • q: quit")
+		return s
+	}
+
+	// Normal view (no detail)
 	s += fmt.Sprintf("%s %s %s %s\n",
 		styleTableHead.Width(6).Render("ID"),
 		styleTableHead.Width(40).Render("Title"),
@@ -119,10 +207,8 @@ func (m Model) viewPosts() string {
 		styleTableHead.Width(20).Render("Date"),
 	)
 
-	// Rows
 	for i, p := range pagePosts {
 		style := styleTableRow
-		// Adjust index for selection highlighting
 		currentIdx := start + i
 		if currentIdx == m.postIdx {
 			style = styleTableSelected
@@ -141,12 +227,16 @@ func (m Model) viewPosts() string {
 		)
 	}
 
-	// Footer
 	s += "\n" + styleDim.Render(fmt.Sprintf("Page %d of %d • /: search • j/k: move • n/p: page • enter: read • w: write • b: back • q: quit", m.page+1, totalPages))
 	return s
 }
 
 func (m Model) viewPost() string {
+	// This function is now effectively unused when m.state == viewPost,
+	// as viewPosts handles the split view.
+	// However, if m.state were to be viewPost and viewPosts didn't handle it,
+	// this would be the fallback. For now, it remains as it was, but its call
+	// site in Model.View() has been changed.
 	p := m.activePost
 
 	// Adjust viewport for modal

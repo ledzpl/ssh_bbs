@@ -78,6 +78,10 @@ func (m Model) updateBoards(msg tea.Msg) (Model, tea.Cmd) {
 			if len(m.boards) > 0 {
 				m.activeBoard = m.boards[m.boardIdx].Name
 				m.refreshPosts()
+				// Reset search when entering a new board
+				m.searchMode = false
+				m.searchQuery = ""
+				m.searchInput.SetValue("")
 				m.state = viewPosts
 				m.postIdx = 0
 			}

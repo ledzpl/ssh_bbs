@@ -105,4 +105,37 @@ var (
 				BorderForeground(colCyan).
 				Padding(1, 2).
 				Width(80)
+
+	styleBannerArt = lipgloss.NewStyle().
+			Foreground(colCyan).
+			Bold(true)
+
+	styleBannerTitle = lipgloss.NewStyle().
+				Foreground(colYellow).
+				Bold(true).
+				Padding(0, 1)
+
+	styleBannerMeta = lipgloss.NewStyle().
+			Foreground(colDim).
+			Padding(0, 1)
+
+	styleSectionTitle = lipgloss.NewStyle().
+				Foreground(colOrange).
+				Bold(true).
+				Padding(0, 1)
+
+	stylePanel = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(colBlue).
+			Padding(1, 2)
+
+	styleDivider = lipgloss.NewStyle().
+			Foreground(colDim)
+
+	styleBadge = lipgloss.NewStyle().
+			Foreground(colBlack).
+			Background(colGreen).
+			Bold(true).
+			Padding(0, 1).
+			MarginRight(1)
 )

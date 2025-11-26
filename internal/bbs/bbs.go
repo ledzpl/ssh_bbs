@@ -243,7 +243,18 @@ func (b *BBS) DeletePost(boardName string, postID int, author string) error {
 		return ErrBoardNotFound
 	}
 
-	return board.deletePost(postID, author)
+	if err := board.deletePost(postID, author); err != nil {
+		return err
+	}
+
+	// Save to disk
+	if b.posts != nil {
+		if err := b.posts.Save(boardName, board.posts); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (b *Board) deletePost(postID int, author string) error {

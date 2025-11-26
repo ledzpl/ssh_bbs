@@ -3,31 +3,33 @@ package ui
 import "github.com/charmbracelet/lipgloss"
 
 var (
-	// Enhanced Colors
-	colCyan      = lipgloss.Color("86")
-	colYellow    = lipgloss.Color("220")
-	colGreen     = lipgloss.Color("76")
-	colDim       = lipgloss.Color("240")
-	colErr       = lipgloss.Color("196")
-	colPurple    = lipgloss.Color("141")
-	colOrange    = lipgloss.Color("208")
-	colBlue      = lipgloss.Color("39")
-	colLightGray = lipgloss.Color("250")
+	// Retro Neon Colors
+	colCyan      = lipgloss.Color("51")  // Bright Cyan
+	colYellow    = lipgloss.Color("226") // Bright Yellow
+	colGreen     = lipgloss.Color("46")  // Neon Green
+	colDim       = lipgloss.Color("240") // Dark Gray
+	colErr       = lipgloss.Color("196") // Bright Red
+	colPurple    = lipgloss.Color("201") // Magenta/Pink
+	colOrange    = lipgloss.Color("208") // Orange
+	colBlue      = lipgloss.Color("33")  // Bright Blue
+	colLightGray = lipgloss.Color("255") // White
+	colBlack     = lipgloss.Color("16")  // Black
 
 	// Styles
 	styleTitle = lipgloss.NewStyle().
 			Foreground(colCyan).
 			Bold(true).
 			Padding(0, 1).
-			BorderStyle(lipgloss.DoubleBorder()).
+			BorderStyle(lipgloss.ThickBorder()).
 			BorderForeground(colCyan)
 
 	styleSelected = lipgloss.NewStyle().
-			Foreground(colGreen).
+			Foreground(colBlack).
+			Background(colGreen).
 			Bold(true)
 
 	styleNormal = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("252"))
+			Foreground(colGreen)
 
 	styleDim = lipgloss.NewStyle().
 			Foreground(colDim)
@@ -44,23 +46,24 @@ var (
 			Padding(0, 1)
 
 	styleTableRow = lipgloss.NewStyle().
-			Padding(0, 1)
+			Padding(0, 1).
+			Foreground(colGreen)
 
 	styleTableSelected = lipgloss.NewStyle().
-				Foreground(colGreen).
+				Foreground(colBlack).
+				Background(colGreen).
 				Bold(true).
-				Background(lipgloss.Color("235")).
 				Padding(0, 1)
 
 	// Post Detail Styles - Enhanced
 	styleDetailBox = lipgloss.NewStyle().
-			Border(lipgloss.DoubleBorder()).
+			Border(lipgloss.ThickBorder()).
 			BorderForeground(colPurple).
 			Padding(1, 2).
 			MarginTop(1)
 
 	styleMetaLabel = lipgloss.NewStyle().
-			Foreground(colOrange).
+			Foreground(colYellow).
 			Bold(true)
 
 	styleMetaValue = lipgloss.NewStyle().
@@ -84,7 +87,7 @@ var (
 
 	// Compose Styles
 	styleComposeBox = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
+			Border(lipgloss.ThickBorder()).
 			BorderForeground(colYellow).
 			Padding(1, 2).
 			MarginTop(1)
@@ -98,7 +101,7 @@ var (
 				Foreground(colDim)
 
 	styleModalDialog = lipgloss.NewStyle().
-				Border(lipgloss.ThickBorder()).
+				Border(lipgloss.DoubleBorder()).
 				BorderForeground(colCyan).
 				Padding(1, 2).
 				Width(80)

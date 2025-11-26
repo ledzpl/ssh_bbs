@@ -217,6 +217,7 @@ func (m Model) updatePostView(msg tea.Msg) (Model, tea.Cmd) {
 				m.err = err
 			} else {
 				m.refreshPosts()
+				m.refreshBoards()
 				m.state = viewPosts
 			}
 			return m, nil

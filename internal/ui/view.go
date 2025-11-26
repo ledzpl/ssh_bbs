@@ -210,27 +210,30 @@ func (m Model) viewPosts() string {
 	}
 
 	// Normal view
-	s += fmt.Sprintf("%s  %s  %s  %s\n",
+	s += fmt.Sprintf("  %s  %s  %s  %s\n",
 		styleTableHead.Width(6).Render("ID"),
-		styleTableHead.Width(35).Render("Title"),
+		styleTableHead.Width(40).Render("Title"),
 		styleTableHead.Width(15).Render("Author"),
-		styleTableHead.Width(18).Render("Date"),
+		styleTableHead.Width(20).Render("Date"),
 	)
-	s += styleDim.Render(strings.Repeat("-", 78)) + "\n"
+	s += styleDim.Render(strings.Repeat("=", 85)) + "\n"
 
 	for i, p := range pagePosts {
 		style := styleTableRow
+		indicator := " "
 		currentIdx := start + i
 		if currentIdx == m.postIdx {
 			style = styleTableSelected
+			indicator = ">"
 		}
 
 		title := p.Title
-		if len(title) > 38 {
+		if len(title) > 35 {
 			title = title[:35] + "..."
 		}
 
-		s += fmt.Sprintf("%s %s %s %s\n",
+		s += fmt.Sprintf("%s %s %s %s %s\n",
+			style.Render(indicator),
 			style.Width(6).Render(fmt.Sprintf("%d", p.ID)),
 			style.Width(40).Render(title),
 			style.Width(15).Render(p.Author),
@@ -294,7 +297,7 @@ func (m Model) viewCompose() string {
 		Foreground(colYellow).
 		Bold(true).
 		Padding(0, 1).
-		BorderStyle(lipgloss.RoundedBorder()).
+		BorderStyle(lipgloss.ThickBorder()).
 		BorderForeground(colYellow).
 		Render("Compose New Post")
 
@@ -340,7 +343,7 @@ func (m Model) viewComments() string {
 		Foreground(colBlue).
 		Bold(true).
 		Padding(0, 1).
-		BorderStyle(lipgloss.RoundedBorder()).
+		BorderStyle(lipgloss.ThickBorder()).
 		BorderForeground(colBlue).
 		Render(fmt.Sprintf("Comments: %s", m.activePost.Title))
 
@@ -357,17 +360,19 @@ func (m Model) viewComments() string {
 		commentLines.WriteString(styleDim.Render(fmt.Sprintf("Total: %d comment(s)", len(m.comments))) + "\n\n")
 
 		// Table header
-		commentLines.WriteString(fmt.Sprintf("%s  %s  %s\n",
+		commentLines.WriteString(fmt.Sprintf("  %s  %s  %s\n",
 			styleTableHead.Width(5).Render("#"),
 			styleTableHead.Width(15).Render("Author"),
 			styleTableHead.Width(53).Render("Content"),
 		))
-		commentLines.WriteString(styleDim.Render(strings.Repeat("-", 75)) + "\n")
+		commentLines.WriteString(styleDim.Render(strings.Repeat("=", 75)) + "\n")
 
 		for i, c := range m.comments {
 			style := styleTableRow
+			indicator := " "
 			if i == m.commentIdx {
 				style = styleTableSelected
+				indicator = ">"
 			}
 
 			// Determine prefix based on parent
@@ -387,11 +392,14 @@ func (m Model) viewComments() string {
 				}
 				num := ""
 				author := ""
+				currIndicator := " "
 				if li == 0 {
 					num = fmt.Sprintf("%d", i+1)
 					author = c.Author
+					currIndicator = indicator
 				}
-				commentLines.WriteString(fmt.Sprintf("%s  %s  %s%s %s\n",
+				commentLines.WriteString(fmt.Sprintf("%s %s  %s  %s%s %s\n",
+					style.Render(currIndicator),
 					style.Width(5).Render(num),
 					style.Width(15).Render(author),
 					indent,

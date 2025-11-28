@@ -63,12 +63,12 @@ func NewModel(board *bbs.BBS, username string) Model {
 	ti.Placeholder = "Title"
 	ti.Focus()
 
-	vp := viewport.New(0, 0)
+	vp := viewport.New(fixedViewportWidth, fixedViewportHeight)
 
 	ta := textarea.New()
 	ta.Placeholder = "Write your post content here..."
-	ta.SetWidth(76)
-	ta.SetHeight(10)
+	ta.SetWidth(fixedViewportWidth - 10)
+	ta.SetHeight(15)
 
 	si := textinput.New()
 	si.Placeholder = "Search posts..."

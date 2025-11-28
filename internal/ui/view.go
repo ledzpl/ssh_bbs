@@ -34,11 +34,7 @@ func framedSection(title, content string) string {
 }
 
 func (m Model) accentBar() string {
-	width := m.width
-	if width < 16 {
-		width = 16
-	}
-	return styleDivider.Render(strings.Repeat("=-", width/2))
+	return styleDivider.Render(strings.Repeat("=-", fixedWidth/2))
 }
 
 func badgeLine(items ...string) string {
@@ -76,7 +72,7 @@ func (m Model) View() string {
 		s += "\n" + styleDim.Render("Error: "+m.err.Error())
 	}
 
-	return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, s)
+	return lipgloss.Place(fixedWidth, fixedHeight, lipgloss.Left, lipgloss.Top, s)
 }
 
 func (m Model) viewBoards() string {
@@ -98,10 +94,10 @@ func (m Model) viewBoards() string {
 	body.WriteString("\n\n")
 
 	body.WriteString(fmt.Sprintf("%s  %s\n",
-		styleTableHead.Width(30).Render("Board Name"),
-		styleTableHead.Width(15).Render("Posts"),
+		styleTableHead.Width(boardNameColWidth).Render("Board Name"),
+		styleTableHead.Width(boardPostsColWidth).Render("Posts"),
 	))
-	body.WriteString(styleDim.Render(strings.Repeat("-", 47)))
+	body.WriteString(styleDim.Render(strings.Repeat("-", boardTableWidth)))
 	body.WriteString("\n")
 
 	for i, b := range m.boards {
@@ -111,8 +107,8 @@ func (m Model) viewBoards() string {
 		}
 
 		body.WriteString(fmt.Sprintf("%s  %s\n",
-			style.Width(30).Render(b.Name),
-			style.Width(15).Render(fmt.Sprintf("%d posts", b.PostCount)),
+			style.Width(boardNameColWidth).Render(b.Name),
+			style.Width(boardPostsColWidth).Render(fmt.Sprintf("%d posts", b.PostCount)),
 		))
 	}
 
@@ -174,15 +170,9 @@ func (m Model) viewPosts() string {
 	if m.state == viewPost {
 		p := m.activePost
 
-		// Fixed box height - use most of the screen
-		boxHeight := m.height - 6 // Leave room for header and help text
-		if boxHeight < 10 {
-			boxHeight = 10
-		}
-
-		// Set viewport to fill the box
-		m.viewport.Height = boxHeight - 6 // Account for title, meta, borders
-		m.viewport.Width = m.width - 10
+		// Set viewport to fixed dimensions
+		m.viewport.Height = fixedViewportHeight
+		m.viewport.Width = fixedViewportWidth
 
 		// Build ALL content (post + comments) for viewport
 		var viewportContent strings.Builder
@@ -306,12 +296,8 @@ func (m Model) viewPost() string {
 	// site in Model.View() has been changed.
 	p := m.activePost
 
-	// Adjust viewport for modal
-	maxContentHeight := m.height - 15 // Reserve space for title, meta, borders, help
-	if maxContentHeight < 5 {
-		maxContentHeight = 5
-	}
-	m.viewport.Height = maxContentHeight
+	// Set viewport to fixed height
+	m.viewport.Height = fixedViewportHeight
 
 	// Metadata Header
 	meta := fmt.Sprintf("%s %s • %s %s",
@@ -332,8 +318,8 @@ func (m Model) viewPost() string {
 
 	// Center the dialog
 	positioned := lipgloss.Place(
-		m.width,
-		m.height-2, // Leave room for help text
+		fixedWidth,
+		fixedHeight-2, // Leave room for help text
 		lipgloss.Center,
 		lipgloss.Center,
 		dialog,
@@ -372,7 +358,7 @@ func (m Model) renderPostContent() string {
 	// Try to render as Markdown
 	renderer, err := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
-		glamour.WithWordWrap(m.viewport.Width-4),
+		glamour.WithWordWrap(fixedViewportWidth-4),
 	)
 
 	if err == nil {
@@ -451,8 +437,8 @@ func (m Model) viewComments() string {
 	}
 
 	// Set viewport for comments
-	m.viewport.Height = m.height - 6 // reserve header and help lines
-	m.viewport.Width = m.width - 10
+	m.viewport.Height = fixedViewportHeight
+	m.viewport.Width = fixedViewportWidth
 	m.viewport.SetContent(commentLines.String())
 
 	// Build final view

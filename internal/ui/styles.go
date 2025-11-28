@@ -2,6 +2,20 @@ package ui
 
 import "github.com/charmbracelet/lipgloss"
 
+const (
+	// Fixed dimensions for consistent layout
+	fixedWidth          = 100
+	fixedHeight         = 30
+	fixedTableWidth     = 90
+	fixedViewportWidth  = 90
+	fixedViewportHeight = 20
+
+	// Board list table column widths
+	boardNameColWidth  = 72
+	boardPostsColWidth = 15
+	boardTableWidth    = boardNameColWidth + boardPostsColWidth + 2 // +2 for spacing
+)
+
 var (
 	// Retro Neon Colors
 	colCyan      = lipgloss.Color("51")  // Bright Cyan
